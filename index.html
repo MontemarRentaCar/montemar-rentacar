@@ -1154,9 +1154,9 @@ function enviarWA() {
     var sfTotal = sillasForm.bebe + sillasForm.infantil + sillasForm.junior;
     if(sfTotal > 0) {
       var sfMsg = '';
-      if(sillasForm.bebe>0) sfMsg += sillasForm.bebe+'x Silla bebe, ';
-      if(sillasForm.infantil>0) sfMsg += sillasForm.infantil+'x Silla infantil, ';
-      if(sillasForm.junior>0) sfMsg += sillasForm.junior+'x Silla junior, ';
+      if(sillasForm.bebe>0) sfMsg += sillasForm.bebe+'x Silla bebe (0-12 meses), ';
+      if(sillasForm.infantil>0) sfMsg += sillasForm.infantil+'x Silla infantil (9m-4 anios), ';
+      if(sillasForm.junior>0) sfMsg += sillasForm.junior+'x Silla junior (4-12 anios), ';
       if(sfMsg.slice(-2)===', ') sfMsg=sfMsg.slice(0,-2);
       msg += 'Sillas: ' + sfMsg + '\n';
     }
