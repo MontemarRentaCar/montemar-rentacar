@@ -1539,6 +1539,7 @@ function enviarWA() {
     if(nov) msg+='Notas: '+nov+'\n';
     msg+='Ha visto en la web: el seguro va incluido, pero no cubre los daños que cause el conductor.\n';
     msg+='\n(Pendiente de confirmación. El vehículo NO está reservado hasta que lo confirmemos.)';
+    if (window.contarVisita) window.contarVisita('reserva');
     window.open('https://wa.me/'+WA+'?text='+encodeURIComponent(msg),'_blank');
   }catch(e2){alert('Error al procesar. Por favor, inténtalo de nuevo.');}
 }
@@ -2159,6 +2160,49 @@ showPage('home');
   }
   limpia(document.body);
   try { new MutationObserver(function (ms) { ms.forEach(function (m) { if (m.type === 'characterData') limpia(m.target); else for (var i = 0; i < m.addedNodes.length; i++) limpia(m.addedNodes[i]); }); }).observe(document.body, { childList: true, subtree: true, characterData: true }); } catch (e) {}
+})();
+</script>
+<script>
+// Contador de visitas para la app (IDEAS U111). Sin cookies y sin guardar nada en el móvil del cliente:
+// avisa de que alguien ha entrado, si mira las tarifas, si manda la reserva y cuánto tiempo tiene la web a la vista.
+// El servidor cuenta a cada persona una vez al día sin saber quién es. En este ordenador (pruebas) no manda nada.
+(function () {
+  var SERVIDOR = 'https://wmrtdofqwbinhmahhjce.supabase.co/rest/v1/rpc/web_contar';
+  var CLAVE_PUBLICA = 'sb_publishable_kFvxaotD72Pe_i_JbHJHCw_S7EkaIMK';
+  var EMPRESA = '873dd7fc-b08f-4757-ba4e-7edb2306224c';
+  var local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.protocol === 'file:';
+  if (!window.fetch || !window.crypto || !crypto.getRandomValues) return;
+  var b = new Uint8Array(12); crypto.getRandomValues(b);
+  var visita = Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+  var idioma = function () { return (typeof currentLang === 'string' && currentLang) || 'es'; };
+  var movil = /Mobi|Android|iPhone|iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform || ''));
+  function manda(evento, extra) {
+    var cuerpo = { p_empresa: EMPRESA, p_visita: visita, p_evento: evento };
+    for (var k in extra) cuerpo[k] = extra[k];
+    if (local) { (window.contadorPrueba = window.contadorPrueba || []).push(cuerpo); return; }
+    try {
+      fetch(SERVIDOR, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', apikey: CLAVE_PUBLICA }, body: JSON.stringify(cuerpo) }).catch(function () {});
+    } catch (e) {}
+  }
+  var hecho = {};
+  window.contarVisita = function (evento) { if (hecho[evento]) return; hecho[evento] = true; manda(evento); };
+  // El tiempo: solo mientras la web está a la vista
+  var visto = 0, desde = document.visibilityState === 'visible' ? Date.now() : null;
+  function sale() {
+    if (desde) { visto += Date.now() - desde; desde = null; }
+    manda('sale', { p_idioma: idioma(), p_segundos: Math.round(visto / 1000) });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') sale(); else if (!desde) desde = Date.now();
+  });
+  window.addEventListener('pagehide', function () { if (desde) sale(); });
+  manda('entra', { p_idioma: idioma(), p_movil: movil });
+  // Las tarifas: cuando se ve un buen trozo de la flota
+  var flota = document.getElementById('flota');
+  if (flota && window.IntersectionObserver) {
+    var o = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { window.contarVisita('tarifas'); o.disconnect(); } }); }, { threshold: 0.25 });
+    o.observe(flota);
+  }
 })();
 </script>
 </body>
