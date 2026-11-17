@@ -2197,11 +2197,22 @@ showPage('home');
   });
   window.addEventListener('pagehide', function () { if (desde) sale(); });
   manda('entra', { p_idioma: idioma(), p_movil: movil });
-  // Las tarifas: cuando se ve un buen trozo de la flota
+  // Las tarifas: solo si se quedan mirándolas (un buen trozo de la flota a la vista 3 segundos seguidos)
   var flota = document.getElementById('flota');
   if (flota && window.IntersectionObserver) {
-    var o = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { window.contarVisita('tarifas'); o.disconnect(); } }); }, { threshold: 0.25 });
+    var espera = null;
+    var o = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting && !espera) espera = setTimeout(function () { window.contarVisita('tarifas'); o.disconnect(); }, 3000);
+        else if (!e.isIntersecting && espera) { clearTimeout(espera); espera = null; }
+      });
+    }, { threshold: 0.25 });
     o.observe(flota);
+  }
+  // Quien toca los + y − de los días de una tarjeta: está calculando su alquiler
+  if (typeof window.cambiaDiasCard === 'function') {
+    var cambiaOriginal = window.cambiaDiasCard;
+    window.cambiaDiasCard = function () { window.contarVisita('calcula'); return cambiaOriginal.apply(this, arguments); };
   }
 })();
 </script>
